@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 
 namespace computorv1
 {
@@ -33,16 +35,10 @@ namespace computorv1
         }
         
         private static void PrintUsage()
-        {
-            string osDependentStr;
-            if (Environment.OSVersion.Platform == PlatformID.Unix ||
-                Environment.OSVersion.Platform == PlatformID.MacOSX)
-                osDependentStr = "./computor";
-            else
-                osDependentStr = "computor.exe";
-            
-            Console.WriteLine(osDependentStr + " [options] \"equation\"\n\t(to get equation roots)");
+        { 
+            Console.WriteLine("./computor.sh [options] \"equation\"\n\t(to get equation roots)");
             Console.WriteLine("options:\n" +
+                              "\t-rnd:<N>\t - generate N random equations, where's N - integer number in range (1, 100) inclusive.\n" +
                               "\t-s\t - print equation solving steps\n" +
                               "\t-z\t - print something else idk");
         }
