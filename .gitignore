@@ -1,7 +1,8 @@
 .idea/*
-.bin/*
-.obj/*
+bin*
+obj*
 *.pdf
 *.exe
 *.user
 correction.txt
+rndEquations.txt

@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
+using System.Globalization;
 
 namespace computorv1
 {
@@ -10,6 +9,7 @@ namespace computorv1
         {
             try
             {
+                CultureInfo.CurrentCulture = new CultureInfo("en-US", false);
                 if (args.Length < 1)
                     PrintUsage();
                 else
@@ -21,6 +21,8 @@ namespace computorv1
             catch (Exception e)
             {
                 Console.WriteLine("[Error] " + (e.Message.Length != 0 ? e.Message : e.ToString()));
+                if (e.StackTrace !=  null)
+                    Console.WriteLine(e.StackTrace);
             }
         }
 
