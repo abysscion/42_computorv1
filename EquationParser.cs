@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace computorv1
@@ -12,69 +11,263 @@ namespace computorv1
         private static readonly Regex PartWithoutExRegex = new Regex(@"^[\+\-]?\d+(\.\d+)?(\^[\+\-]?\d+)?");
         private static readonly Regex PartWithExRegex = new Regex(@"^[\+\-]?(\d+(\.\d+)?)?\*?[xX](\^[\+\-]?\d+)?");
 
-        public static void Parse(string equation)
+        public static string Parse(string equation, bool printReductionSteps = false)
         {
+            var reductionSteps = new List<string>();
             var trimmedEqu = Regex.Replace(equation, @"\s+", "").ToLower();
 
-            trimmedEqu = RemoveMultipleZeroes(ref trimmedEqu);
-            CheckForInvalidSymbols(ref trimmedEqu);
+            CheckForInvalidEquation(ref trimmedEqu);
             CheckForMultipleConcatedExes(ref trimmedEqu);
             trimmedEqu = SimplifySigns(ref trimmedEqu);
-            trimmedEqu = MoveRightPartsToLeft(ref trimmedEqu); //do not change order
+            reductionSteps.Add(trimmedEqu);
+            trimmedEqu = RemoveMultipleZeroes(ref trimmedEqu);
+            reductionSteps.Add(trimmedEqu);
+            trimmedEqu = MoveRightPartsToLeft(ref trimmedEqu);
+            reductionSteps.Add(trimmedEqu);
             trimmedEqu = RemoveMultiplyBy0(ref trimmedEqu);
-            //remove useless powers ^0 ^1
+            reductionSteps.Add(trimmedEqu);
             trimmedEqu = CalculatePowers(ref trimmedEqu);
-            //calculate nums
-            //calculate exes
+            reductionSteps.Add(trimmedEqu);
+            trimmedEqu = CalculateMultiplies(ref trimmedEqu);
+            reductionSteps.Add(trimmedEqu);
+            trimmedEqu = RemoveUselessPowers(ref trimmedEqu);
+            reductionSteps.Add(trimmedEqu);
+            trimmedEqu = CalculateSums(ref trimmedEqu);
+            reductionSteps.Add(trimmedEqu);
             
-            Console.WriteLine(trimmedEqu);
+            if (printReductionSteps)
+                PrintReductionSteps(reductionSteps);
+            
+            return trimmedEqu;
+        }
+        
+        public static int GetPolynomialDegree(string equ)
+        {
+            if (!equ.Contains('x'))
+                return 0;
+            
+            var parts = SplitEquationByParts(ref equ);
+            var degree = int.MinValue;
+
+            for (var i = 0; i < parts.Count; i++)
+            {
+                if (!parts[i].Contains('x'))
+                    continue;
+
+                var part = parts[i];
+                var tmp = GetExPower(ref part);
+
+                if (tmp > degree)
+                    degree = tmp;
+            }
+
+            return degree;
+        }
+        
+        private static void PrintReductionSteps(List<string> reductionsSteps)
+        {
+            Console.WriteLine($"[Simplifying signs]\t\t {reductionsSteps[0]}");
+            Console.WriteLine($"[Removing multiple zeroes]\t {reductionsSteps[1]}");
+            Console.WriteLine($"[Moving right part to left]\t {reductionsSteps[2]}");
+            Console.WriteLine($"[Removing multiplies by zero]\t {reductionsSteps[3]}");
+            Console.WriteLine($"[Calculating powers]\t\t {reductionsSteps[4]}");
+            Console.WriteLine($"[Calculating multiplyings]\t {reductionsSteps[5]}");
+            Console.WriteLine($"[Replacing ^0 and ^1]\t\t {reductionsSteps[6]}");
+            Console.WriteLine($"[Calculating summaries]\t\t {reductionsSteps[7]}");
+            Console.WriteLine();
+        }
+        
+        private static string CalculateSums(ref string trimmedEqu)
+        {
+            var result = "";
+            var parts = SplitEquationByParts(ref trimmedEqu);
+            var exlessSum = 0.0;
+            
+            for (var curI = 0; curI < parts.Count - 1; curI++)
+            {
+                if (!parts[curI].Contains('x'))
+                    continue;
+                var currentEx = parts[curI];
+                var currentPower = GetExPower(ref currentEx);
+
+                for (var nextI = curI + 1; nextI < parts.Count; nextI++)
+                {
+                    if (!parts[nextI].Contains('x'))
+                        continue;
+                    var nextEx = parts[nextI];
+
+                    if (currentPower != GetExPower(ref nextEx))
+                        continue;
+
+                    parts[curI] = SumExes(parts[curI], nextEx);
+                    parts.RemoveAt(nextI);
+                    if (parts[curI] == "+0")
+                        break;
+                    nextI--;
+                }
+            }
+            
+            for (var i = parts.Count - 1; i >= 0; i--)
+            {
+                if (parts[i].Contains('x'))
+                    continue;
+                if (!double.TryParse(parts[i], out var part))
+                    throw new Exception($"unable to parse {parts[i]} as number.");
+                exlessSum += part;
+                if (ShitMath.Abs(exlessSum) > int.MaxValue)
+                    throw new Exception($"unable to work with numbers larger than INT_MAX: {parts[i]}.");
+                parts.RemoveAt(i);
+            }
+
+            var newParts = parts.ToArray();
+            Array.Sort(newParts, (s, s1) => GetExPower(ref s1) - GetExPower(ref s));
+            foreach (var part in newParts)
+                result += part;
+            if (result.Length > 0)
+            {
+                result = result[0] == '+' ? result.Remove(0, 1) : result;
+                if (exlessSum != 0)
+                {
+                    result += (exlessSum > 0 ? "+" : "") + exlessSum;
+                }
+            }
+            else
+                result += exlessSum;
+
+            return result + "=0";
         }
 
-        // private static string ReduceReducible(ref string trimmedEqu)
-        // {
-        //     var parts = SplitEquationByParts(ref trimmedEqu);
-        //
-        //     foreach (var VARIABLE in Regex.Matches())
-        //     {
-        //         
-        //     }
-        //     var sumsParts = 
-        // }
-
-        private static string CalculatePowers(ref string trimmedEqu)
+        private static string SumExes(string lX, string rX)
         {
-            // var parts = SplitEquationByParts(ref trimmedEqu);
-            // var result = "";
-            //
-            // for (var i = 0; i < parts.Count; i++)
-            // {
-            //     if (!PartWithoutExRegex.IsMatch(parts[i]))
-            //         continue;         
-            //     if (!parts[i].Contains('^'))
-            //         continue;
-            //     if (parts[i][parts[i].IndexOf('^') + 1] == '-')  
-            //         continue;
-            //     var pieces = parts[i].Split('^');
-            //     int lPiece, rPiece;
-            //     double ldPiece;
-            //     
-            //     if (!int.TryParse(pieces[1], out rPiece))
-            //         throw new Exception($"can't parse power [{pieces[1]}] as int in [{parts[i]}].");
-            //     if (int.TryParse(pieces[0], out lPiece))
-            //         parts[i] = "" + shitPow(lPiece, rPiece);
-            //     else if (Double.TryParse(pieces[0], out ldPiece))
-            //         parts[i] = "" + Math.Pow(ldPiece, rPiece);
-            //     else
-            //         throw new Exception($"can't parse value [{pieces[0]}] as int or double in [{parts[i]}].");
-            // }
-            //
-            // foreach (var part in parts) 
-            //     result += part;
-            //
-            // return result + "=0";
+            double lVal, rVal;
+            var power = GetExPower(ref lX);
 
+            if (power != GetExPower(ref rX))
+                return "";
+
+            if (lX[0] != '-' && lX[0] != '+')
+                lX = lX.Insert(0, "+");
+            if (lX.IndexOf('x') <= 1)
+            {
+                lVal = 1.0;
+                lVal = lX[0] == '-' ? lVal * -1.0 : 1.0;
+            }
+            else
+            {
+                if (!double.TryParse(lX.Substring(0, lX.IndexOf('x')), out lVal))
+                    throw new Exception($"can't parse value of [{lX}] as number.");
+            }
+            
+            if (rX.IndexOf('x') <= 1)
+            {
+                rVal = 1.0;
+                rVal = rX[0] == '-' ? rVal * -1.0 : 1.0;
+            }
+            else
+            {
+                if (!double.TryParse(rX.Substring(0, rX.IndexOf('x')), out rVal))
+                    throw new Exception($"can't parse value of [{rX}] as number.");
+            }
+
+            var sum = lVal + rVal;
+            if (sum == 0.0)
+                return "+0";
+            if (ShitMath.Abs(sum) > int.MaxValue)
+                throw new Exception($"unable to work with numbers larger than INT_MAX: {lVal} + {rVal} = {sum}.");
+            
+            var result = sum > 0.0 ? "+" : "-";
+            result += ShitMath.Abs(sum - 1.0) < 0.000000001 ? "" : "" + ShitMath.Abs(sum);
+
+            return  result + 'x' + (power == 1 ? "" : "^" + power);
+        }
+        
+        private static int GetExPower(ref string exString)
+        {
+            if (!exString.Contains('^'))
+                return 1;
+
+            var powerStr = exString.Substring(exString.IndexOf('^') + 1);
+            return !int.TryParse(powerStr, out var power) ? 1 : power;
+        }
+        
+        private static string CalculateMultiplies(ref string trimmedEqu)
+        {
+            var parts = SplitEquationByParts(ref trimmedEqu);
+            var result = "";
+            
+            for (var i = 0; i < parts.Count; i++)
+            {
+                if (!parts[i].Contains('*'))
+                    continue;
+                var factors = parts[i].Split('*');
+
+                for (var j = factors.Length - 2; j >= 0; j--)
+                {
+                    var lxHolder = "";
+                    var rxHolder = "";
+                    double lFactor = 1.0, rFactor = 1.0;
+
+                    if (factors[j].Contains('x'))
+                    {
+                        lxHolder = factors[j].Substring(factors[j].IndexOf('x'));
+                        factors[j] = factors[j].Remove(factors[j].IndexOf('x'));
+                        if (factors[j].Length == 0)
+                            factors[j] = "1";
+                        else if (factors[j].Length == 1 && (factors[j][0] == '+' || factors[j][0] == '-'))
+                            factors[j] += "1"; 
+                    }
+                    
+                    if (factors[j + 1].Contains('x'))
+                    {
+                        rxHolder = factors[j + 1].Substring(factors[j + 1].IndexOf('x'));
+                        factors[j + 1] = factors[j + 1].Remove(factors[j + 1].IndexOf('x'));
+                        if (factors[j + 1].Length == 0)
+                            factors[j + 1] = "1";
+                        else if (factors[j + 1].Length == 1 && (factors[j + 1][0] == '+' || factors[j + 1][0] == '-'))
+                            factors[j + 1] += "1"; 
+                    }
+
+                    if (factors[j].Length > 0)
+                        if (!double.TryParse(factors[j], out lFactor))
+                            throw new Exception($"can't parse factor [{factors[j]}] as number or x container.");
+
+                    if (factors[j + 1].Length > 0)
+                        if (!double.TryParse(factors[j + 1], out rFactor))
+                            throw new Exception($"can't parse factor [{factors[j + 1]}] as number or x container.");
+                    
+                    var multiRes = lFactor * rFactor;
+                    factors[j] = (multiRes >= 0.0 ? "+" : "") + multiRes + MultiplyExes(lxHolder, rxHolder);
+                }
+
+                parts[i] = factors[0];
+            }
+
+            foreach (var part in parts)
+                result += part;
+
+            return result + "=0";
+        }
+
+        private static string MultiplyExes(string lX, string rX)
+        {
+            var lP = 1;
+            var rP = 1;
+
+            if (lX.Length == 0 || rX.Length == 0)
+                return lX + rX;
+            if (lX.Contains('^'))
+                if (!int.TryParse(lX.Substring(lX.IndexOf('^') + 1), out lP))
+                    throw new Exception($"can't parse power of [{lX}] as integer.");
+            if (rX.Contains('^'))
+                if (!int.TryParse(rX.Substring(rX.IndexOf('^') + 1), out rP))
+                    throw new Exception($"can't parse power of [{rX}] as integer.");
+            return "x^" + (lP + rP);
+        }
+        
+        private static string RemoveUselessPowers(ref string trimmedEqu)
+        {
             var str = trimmedEqu.Substring(0);
-            var match = Regex.Match(str, @"[\+\-]?\d+(\.\d+)?\^\+?\d+");
+            var match = Regex.Match(str, @"[\+\-]?(((\d+(\.\d+)?)?\*?x)|(\d+(\.\d+)?))\^[\+\-]?\d+");
 
             if (!match.Success)
                 return trimmedEqu;
@@ -83,41 +276,54 @@ namespace computorv1
                 var splitPow = match.Value.Split('^');
                 var sign = splitPow[0][0] == '-' ? "-" : splitPow[0][0] == '+' ? "+" : ""; 
                 string result;
-                int lPiece, rPiece;
-                double ldPiece;
 
                 splitPow[0] = Regex.Replace(splitPow[0], @"^[\+\-]", "");
-                if (!int.TryParse(splitPow[1], out rPiece))
+                if (!int.TryParse(splitPow[1], out var rPiece))
                     throw new Exception($"can't parse power [{splitPow[1]}] as int in [{match.Value}].");
-                if (int.TryParse(splitPow[0], out lPiece))
-                    result = "" + shitPow(lPiece, rPiece);
-                else if (Double.TryParse(splitPow[0], out ldPiece))
-                    result = "" + Math.Pow(ldPiece, rPiece);
+                if (rPiece == 0)
+                    result = "1";
+                else if (rPiece == 1)
+                    result = splitPow[0];
                 else
-                    throw new Exception($"can't parse value [{splitPow[0]}] as int or double in [{match.Value}].");
+                    result = splitPow[0] + '@' + splitPow[1];
                 str = str.Remove(match.Index, match.Length).Insert(match.Index, sign + result);
-            } while ((match = Regex.Match(str, @"[\+\-]?\d+(\.\d+)?\^\+?\d+")).Success);
+            } while ((match = Regex.Match(str, @"[\+\-]?(((\d+(\.\d+)?)?\*?x)|(\d+(\.\d+)?))\^[\+\-]?\d+")).Success);
 
+            str = str.Replace('@', '^');
             return str;
         }
-
-        private static int shitPow(long value, int power)
+        
+        private static string CalculatePowers(ref string trimmedEqu)
         {
-            if (value > int.MaxValue)
-                throw new Exception("can't work with numbers bigger than INT_MAX: " + value + "^" + power);
-            
-            long ret = 1;
-            var x = value;
-            while (power != 0)
+            var str = trimmedEqu.Substring(0);
+            var match = Regex.Match(str, @"[\+\-]?\d+(\.\d+)?\^[\+\-]?\d+");
+
+            if (!match.Success)
+                return trimmedEqu;
+            do
             {
-                if ((power & 1) == 1)
-                    ret *= x;
-                x *= x;
-                if (x > int.MaxValue)
-                    throw new Exception("can't work with numbers bigger than INT_MAX: " + value + "^" + power);
-                power >>= 1;
-            }
-            return (int)ret;
+                var splitPow = match.Value.Split('^');
+                var sign = splitPow[0][0] == '-' ? "-" : splitPow[0][0] == '+' ? "+" : ""; 
+                string result;
+
+                splitPow[0] = Regex.Replace(splitPow[0], @"^[\+\-]", "");
+                if (!int.TryParse(splitPow[1], out var rPiece))
+                    throw new Exception($"can't parse power [{splitPow[1]}] as integer in [{match.Value}].");
+                if (double.TryParse(splitPow[0], out var ldPiece))
+                {
+                    var value = ShitMath.Pow(ldPiece, rPiece);
+                    result = "" + value;
+                    if (value != 0 && (!double.IsNormal(value) ||
+                                       result.Contains('e', StringComparison.OrdinalIgnoreCase) ||
+                                       ShitMath.Abs(value) > int.MaxValue))
+                        throw new Exception($"value {ldPiece} powered by {rPiece} is too big or too small: {value}");
+                }
+                else
+                    throw new Exception($"can't parse value [{splitPow[0]}] as number in [{match.Value}].");
+                str = str.Remove(match.Index, match.Length).Insert(match.Index, sign + result);
+            } while ((match = Regex.Match(str, @"[\+\-]?\d+(\.\d+)?\^[\+\-]?\d+")).Success);
+
+            return str;
         }
 
         private static string RemoveMultipleZeroes(ref string trimmedEqu)
@@ -142,7 +348,7 @@ namespace computorv1
 
             for (var i = 0; i < parts.Count; i++)
             {
-                if (!Regex.Match(parts[i], @"([^\^]0\*)|(\*\-?0)|(0x)").Success)
+                if (!Regex.Match(parts[i], @"([\+\-]?\*((0\.0)|(0))\*?)|([\+\-\*]((0\.0)|(0))x)").Success)
                     continue;
                 parts.RemoveAt(i);
                 i--;
@@ -165,7 +371,7 @@ namespace computorv1
                 if (!regMatch.Success)
                     regMatch = PartWithoutExRegex.Match(str);
                 if (!regMatch.Success && str.Length != 2)
-                    throw new Exception("debug me man");
+                    throw new Exception($"invalid part presented in \"{str}\".");
                 str = str.Remove(0, regMatch.Length);
                 parts.Add(regMatch.Value);
                 if (str.Length > 2)
@@ -193,17 +399,43 @@ namespace computorv1
             simplifiedString = simplifiedString.Replace("++", "+");
             simplifiedString = simplifiedString.Replace("-+", "-");
             simplifiedString = simplifiedString.Replace("+-", "-");
-            if (simplifiedString[0] == '+')
-                simplifiedString = simplifiedString.Remove(0, 1);
+            if (trimmedEqu[0] != '+' || trimmedEqu[0] != '-')
+                trimmedEqu = trimmedEqu.Insert(0, "+");
             return simplifiedString;
         }
 
-        private static void CheckForInvalidSymbols(ref string str)
+        private static void CheckForInvalidEquation(ref string str)
         {
             var match = ForbiddenSymbolsRegex.Match(str);
-            if (!match.Success)
-                return;
-            throw new Exception("invalid symbol.\n" + str + "\n" + "^".PadLeft(match.Index + 1));
+            if (match.Success)
+                throw new Exception("invalid symbol.\n" + str + "\n" + "^".PadLeft(match.Index + 1));
+            match = Regex.Match(str, @"x\d+");
+            if (match.Success)
+                throw new Exception("invalid symbol.\n" + str + "\n" + "^".PadLeft(match.Index + 1));
+            match = Regex.Match(str, @"[\+\-\*\^\.]=");
+            if (match.Success)
+                throw new Exception("invalid symbol.\n" + str + "\n" + "^".PadLeft(match.Index + 1));
+            match = Regex.Match(str, @"[\+\-]?\d+(\.\d+)?(\^[\+\-]?\d+[xX])");
+            if (match.Success)
+                throw new Exception("invalid part.\n" + str + "\n" + "^".PadLeft(match.Index + 1));
+            if (!str.Contains('='))
+                throw new Exception("not an equation.");
+            if (str.IndexOf('=') == 0 || str.IndexOf('=') == str.Length - 1)
+                throw new Exception("not an equation.");
+            if (str.LastIndexOf('=') != str.IndexOf('='))
+                throw new Exception("too many equals signs.\n" + str + "\n" + "^".PadLeft(str.LastIndexOf('=')));
+            if (!str.Contains('x'))
+            {
+                match = Regex.Match(str, @"\d");
+                if (!match.Success)
+                    throw new Exception("there are no exes and there are no numbers. Am I joke to you?");
+            }
+            var leftPart = str.Substring(0, str.IndexOf('='));
+            var rightPart = str.Substring(str.IndexOf('=') + 1, str.Length - 1 - leftPart.Length);
+            if (!PartWithExRegex.Match(leftPart).Success && !PartWithoutExRegex.Match(leftPart).Success)
+                throw new Exception("left half of equation does not contains any valid part.");
+            if (!PartWithExRegex.Match(rightPart).Success && !PartWithoutExRegex.Match(rightPart).Success)
+                throw new Exception("right half of equation does not contains any valid part.");
         }
         
         private static void CheckForMultipleConcatedExes(ref string str)
