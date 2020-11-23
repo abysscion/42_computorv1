@@ -62,7 +62,7 @@ namespace computorv1
                     Console.WriteLine(root);
             }
 
-            if (optsParser.SFlagSet)
+            if (optsParser.RFlagSet)
             {
                 Console.WriteLine("\nREDUCTION STEPS:");
                 EquationParser.PrintReductionSteps();
@@ -80,10 +80,11 @@ namespace computorv1
         { 
             Console.WriteLine("./computor.sh [options] \"equation\"\n\t(to solve equation)");
             Console.WriteLine("options:\n" +
-                              "\t-rnd:<N>\t - generate N random equations, where's N - integer number in range (1, 100) inclusive.\n" +
-                              "\t-f\t - show roots as fractions\n" +
-                              "\t-s\t - print equation solving steps\n" +
-                              "\t-r\t - print equation reducing steps");
+                              "\t-rnd:<N>\t- generate N random equations, where's N - integer number in range (1, 100) inclusive.\n" + 
+							  "\t\t\t  generated equations will be stored at file \"rndEquations.txt\"\n" +
+                              "\t-f\t\t- show roots as fractions\n" +
+                              "\t-s\t\t- print equation solving steps\n" +
+                              "\t-r\t\t- print equation reducing steps");
         }
         
         private static void GenerateRandomEquations(int count = 20)
