@@ -21,8 +21,8 @@ namespace computorv1
             catch (Exception e)
             {
                 Console.WriteLine("[Error] " + (e.Message.Length != 0 ? e.Message : e.ToString()));
-                if (e.StackTrace !=  null)
-                    Console.WriteLine(e.StackTrace);
+                // if (e.StackTrace !=  null)
+                //     Console.WriteLine(e.StackTrace);
             }
         }
 
@@ -30,7 +30,6 @@ namespace computorv1
         {
             EquationSolver solver;
             string equation;
-            int degree;
             var optsParser = new OptionsParser();
             var opts = new string[args.Length - 1];
 
@@ -40,9 +39,8 @@ namespace computorv1
                 GenerateRandomEquations(optsParser.RndEquationsCount);
             equation = EquationParser.Parse(args[^1]);
             solver = new EquationSolver(equation, optsParser.FFlagSet);
-            solver.Solve();
-
             Console.WriteLine($"Reduced form: {equation}");
+            solver.Solve();
             Console.WriteLine($"Polynomial degree: {solver.Degree}");
             if (solver.Degree == 0)
             {
@@ -51,9 +49,7 @@ namespace computorv1
                     : "There is no solution.");
             }
             else if (solver.Degree == 1)
-            {
-                Console.WriteLine("The only possible solution is 0.");
-            }
+                Console.WriteLine(solver.Roots[0]);
             else
             {
                 if (solver.Discriminant > 0)
@@ -75,7 +71,7 @@ namespace computorv1
             if (optsParser.SFlagSet)
             {
                 Console.WriteLine("\nSOLVING STEPS:");
-                foreach (var step in solver.SolvingSteps)
+                foreach (var step in solver.Steps)
                     Console.WriteLine(step);
             }
         }
@@ -120,6 +116,13 @@ namespace computorv1
                             else
                                 part += rnd.Next(0, 11);
                             numPresented = true;
+                            
+                            if (rnd.NextDouble() >= 0.5) // would power be presented?
+                            {
+                                part += "^";
+                                part += signs[rnd.Next(0, 3)]; // would sign be presented?
+                                part += rnd.Next(0, 5);
+                            }
                         }
 
                         if (!numPresented || rnd.NextDouble() >= 0.5) // would ex be presented?
@@ -127,15 +130,15 @@ namespace computorv1
                             if (numPresented && rnd.NextDouble() >= 0.5) // would * between number and X be presented?
                                 part += "*";
                             part += exes[rnd.Next(0, 2)];
+                            
+                            if (!numPresented && rnd.NextDouble() >= 0.5) // would power be presented?
+                            {
+                                part += "^";
+                                part += signs[rnd.Next(0, 3)]; // would sign be presented?
+                                part += rnd.Next(0, 4);
+                            }
                         }
-
-                        if (rnd.NextDouble() >= 0.5) // would power be presented?
-                        {
-                            part += "^";
-                            part += signs[rnd.Next(0, 3)]; // would sign be presented?
-                            part += rnd.Next(0, 10);
-                        }
-
+                        
                         partsList.Add(part);
                     }
 

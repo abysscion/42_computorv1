@@ -14,6 +14,8 @@ namespace computorv1
         
         public static string Parse(string equation)
         {
+            if (!equation.Contains('x'))
+                throw new Exception("forgot to put x, huh?");
             var trimmedEqu = Regex.Replace(equation, @"\s+", "").ToLower();
 
             CheckForInvalidEquation(ref trimmedEqu);
@@ -33,8 +35,8 @@ namespace computorv1
             trimmedEqu = RemoveUselessPowers(ref trimmedEqu);
             ReductionSteps.Add(trimmedEqu);
             trimmedEqu = CalculateSums(ref trimmedEqu);
+            trimmedEqu = Regex.Replace(trimmedEqu, @"\^\+", "^");
             ReductionSteps.Add(trimmedEqu);
-
             return trimmedEqu;
         }
         
@@ -291,6 +293,7 @@ namespace computorv1
             foreach (var part in parts)
                 result += part;
 
+            result = SimplifySigns(ref result);
             return result + "=0";
         }
 
@@ -327,7 +330,17 @@ namespace computorv1
                 if (!int.TryParse(splitPow[1], out var rPiece))
                     throw new Exception($"can't parse power [{splitPow[1]}] as int in [{match.Value}].");
                 if (rPiece == 0)
-                    result = "1";
+                {
+                    var lPiece = splitPow[0].Substring(0, splitPow[0].IndexOf('x'));
+                    if (lPiece.Length == 0)
+                        result = "1";
+                    else
+                    {
+                        if (!double.TryParse(lPiece, out var lVal))
+                            throw new Exception($"can't parse value of [{lPiece}] as number in [{splitPow[0]}].");
+                        result = "" + lVal;
+                    }
+                }
                 else if (rPiece == 1)
                     result = splitPow[0];
                 else
