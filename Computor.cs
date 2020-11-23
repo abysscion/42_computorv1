@@ -61,7 +61,7 @@ namespace computorv1
                 else if (solver.Discriminant == 0)
                     Console.WriteLine("Discriminant is 0. There is one solution:");
                 else
-                    Console.WriteLine("Discriminant is strictly negative. There are two complex solutions:");
+                    Console.WriteLine("Discriminant is strictly negative. No real solutions, but there are two complex solutions:");
                 foreach (var root in solver.Roots)
                     Console.WriteLine(root);
             }

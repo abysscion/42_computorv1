@@ -53,9 +53,9 @@ namespace computorv1
 
             Discriminant = b * b - 4 * a * c;
             SolvingSteps.Add($"[Calculating discriminant]\tD = b^2 - 4ac = {b}^2 - 4 * {a} * {c} = {Discriminant}");
-            sqrD = ShitMath.Sqrt(Discriminant);
             if (Discriminant >= 0)
             {
+                sqrD = ShitMath.Sqrt(Discriminant);
                 Roots.Add(_shouldNotReduceFraction ? "" + (-b + sqrD + "/" + 2 * a) : "" + (-b + sqrD) / (2 * a));
                 SolvingSteps.Add(
                     $"[Calculating first root]\tx0 = (-b + sqrt(D)) / 2a = ({-b} + {sqrD}) / {2 * a} = {Roots[0]}");
@@ -68,7 +68,19 @@ namespace computorv1
             }
             else
             {
-                
+                Discriminant = -Discriminant;
+                sqrD = ShitMath.Sqrt(Discriminant);
+                var real = -b / (2 * a);
+                var imaginary = ShitMath.Abs(sqrD / (2 * a));
+                var rStr = _shouldNotReduceFraction ? -b + "/" + 2 * a : "" + real;
+                var iStr = _shouldNotReduceFraction ? sqrD + "/" + 2 * a : "" + imaginary;
+
+                SolvingSteps.Add($"[Real part of roots]\t\tr = -b / 2a = {-b} / {2 * a} = {rStr}");
+                SolvingSteps.Add($"[Imaginary part of roots]\ti = sqrt(D) / 2a = {sqrD} / {2 * a} = {iStr}");
+                SolvingSteps.Add($"[Calculating first root]\tx0 = r - i = {rStr} - {iStr}i");
+                SolvingSteps.Add($"[Calculating second root]\tx1 = r + i = {rStr} + {iStr}i");
+                Roots.Add(rStr + " - " + iStr + "i");
+                Roots.Add(rStr + " + " + iStr + "i");
             }
         }
 

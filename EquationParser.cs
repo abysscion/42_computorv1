@@ -75,7 +75,12 @@ namespace computorv1
                     if (part.Length != 3)
                     {
                         if (!double.TryParse(part.Substring(0, part.IndexOf('x')), out a))
-                            throw new Exception($"can't parse value of [{part}] as number.");
+                        {
+                            if (part.Length == 4 && (part[0] == '-' || part[0] == '+'))
+                                a = part[0] == '-' ? -1 : 1;
+                            else
+                                throw new Exception($"can't parse value of [{part}] as number.");
+                        }
                     }
                     else
                         a = 1;
@@ -85,7 +90,12 @@ namespace computorv1
                     if (part.Length != 1)
                     {
                         if (!double.TryParse(part.Substring(0, part.IndexOf('x')), out b))
-                            throw new Exception($"can't parse value of [{part}] as number.");
+                        {
+                            if (part.Length == 2 && (part[0] == '-' || part[0] == '+'))
+                                b = part[0] == '-' ? -1 : 1;
+                            else
+                                throw new Exception($"can't parse value of [{part}] as number.");
+                        }
                     }
                     else
                         b = 1;
