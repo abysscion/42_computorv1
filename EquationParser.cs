@@ -6,38 +6,35 @@ namespace computorv1
 {
     internal static class EquationParser
     {
+        private static readonly List<string> ReductionSteps = new List<string>();
         private static readonly Regex MultipleExesConcatedRegex = new Regex(@"(\d+(\.\d+)?)?\*?x(\d+(\.\d+)?)?x");
         private static readonly Regex ForbiddenSymbolsRegex = new Regex(@"[^xX\.\-\+\*\=\^\d\s]");
         private static readonly Regex PartWithoutExRegex = new Regex(@"^[\+\-]?\d+(\.\d+)?(\^[\+\-]?\d+)?");
         private static readonly Regex PartWithExRegex = new Regex(@"^[\+\-]?(\d+(\.\d+)?)?\*?[xX](\^[\+\-]?\d+)?");
-
-        public static string Parse(string equation, bool printReductionSteps = false)
+        
+        public static string Parse(string equation)
         {
-            var reductionSteps = new List<string>();
             var trimmedEqu = Regex.Replace(equation, @"\s+", "").ToLower();
 
             CheckForInvalidEquation(ref trimmedEqu);
             CheckForMultipleConcatedExes(ref trimmedEqu);
             trimmedEqu = SimplifySigns(ref trimmedEqu);
-            reductionSteps.Add(trimmedEqu);
+            ReductionSteps.Add(trimmedEqu);
             trimmedEqu = RemoveMultipleZeroes(ref trimmedEqu);
-            reductionSteps.Add(trimmedEqu);
+            ReductionSteps.Add(trimmedEqu);
             trimmedEqu = MoveRightPartsToLeft(ref trimmedEqu);
-            reductionSteps.Add(trimmedEqu);
+            ReductionSteps.Add(trimmedEqu);
             trimmedEqu = RemoveMultiplyBy0(ref trimmedEqu);
-            reductionSteps.Add(trimmedEqu);
+            ReductionSteps.Add(trimmedEqu);
             trimmedEqu = CalculatePowers(ref trimmedEqu);
-            reductionSteps.Add(trimmedEqu);
+            ReductionSteps.Add(trimmedEqu);
             trimmedEqu = CalculateMultiplies(ref trimmedEqu);
-            reductionSteps.Add(trimmedEqu);
+            ReductionSteps.Add(trimmedEqu);
             trimmedEqu = RemoveUselessPowers(ref trimmedEqu);
-            reductionSteps.Add(trimmedEqu);
+            ReductionSteps.Add(trimmedEqu);
             trimmedEqu = CalculateSums(ref trimmedEqu);
-            reductionSteps.Add(trimmedEqu);
-            
-            if (printReductionSteps)
-                PrintReductionSteps(reductionSteps);
-            
+            ReductionSteps.Add(trimmedEqu);
+
             return trimmedEqu;
         }
         
@@ -63,18 +60,57 @@ namespace computorv1
 
             return degree;
         }
-        
-        private static void PrintReductionSteps(List<string> reductionsSteps)
+
+        public static void SetCoefficients(out double a, out double b, out double c, ref string equation)
         {
-            Console.WriteLine($"[Simplifying signs]\t\t {reductionsSteps[0]}");
-            Console.WriteLine($"[Removing multiple zeroes]\t {reductionsSteps[1]}");
-            Console.WriteLine($"[Moving right part to left]\t {reductionsSteps[2]}");
-            Console.WriteLine($"[Removing multiplies by zero]\t {reductionsSteps[3]}");
-            Console.WriteLine($"[Calculating powers]\t\t {reductionsSteps[4]}");
-            Console.WriteLine($"[Calculating multiplyings]\t {reductionsSteps[5]}");
-            Console.WriteLine($"[Replacing ^0 and ^1]\t\t {reductionsSteps[6]}");
-            Console.WriteLine($"[Calculating summaries]\t\t {reductionsSteps[7]}");
-            Console.WriteLine();
+            var equParts = SplitEquationByParts(ref equation);
+            
+            a = 0;
+            b = 0;
+            c = 0;
+            foreach (var part in equParts)
+            {
+                if (part.Contains("x^2"))
+                {
+                    if (part.Length != 3)
+                    {
+                        if (!double.TryParse(part.Substring(0, part.IndexOf('x')), out a))
+                            throw new Exception($"can't parse value of [{part}] as number.");
+                    }
+                    else
+                        a = 1;
+                }
+                else if (part.Contains('x'))
+                {
+                    if (part.Length != 1)
+                    {
+                        if (!double.TryParse(part.Substring(0, part.IndexOf('x')), out b))
+                            throw new Exception($"can't parse value of [{part}] as number.");
+                    }
+                    else
+                        b = 1;
+                }
+                else
+                {
+                    if (!double.TryParse(part, out c))
+                        throw new Exception($"can't parse value of [{part}] as number.");
+                }
+            }
+        }
+
+        public static void PrintReductionSteps()
+        {
+            if (ReductionSteps.Count == 0)
+                return;
+            
+            Console.WriteLine($"[Simplifying signs]\t\t {ReductionSteps[0]}");
+            Console.WriteLine($"[Removing multiple zeroes]\t {ReductionSteps[1]}");
+            Console.WriteLine($"[Moving right part to left]\t {ReductionSteps[2]}");
+            Console.WriteLine($"[Removing multiplies by zero]\t {ReductionSteps[3]}");
+            Console.WriteLine($"[Calculating powers]\t\t {ReductionSteps[4]}");
+            Console.WriteLine($"[Calculating multiplyings]\t {ReductionSteps[5]}");
+            Console.WriteLine($"[Replacing ^0 and ^1]\t\t {ReductionSteps[6]}");
+            Console.WriteLine($"[Calculating summaries]\t\t {ReductionSteps[7]}");
         }
         
         private static string CalculateSums(ref string trimmedEqu)
@@ -346,6 +382,11 @@ namespace computorv1
             var parts = SplitEquationByParts(ref trimmedEqu);
             var result = "";
 
+            if (parts.Count > 0)
+            {
+                if (parts[0][0] != '-' && parts[0][0] != '+')
+                    parts[0] = parts[0].Insert(0, "+");
+            }
             for (var i = 0; i < parts.Count; i++)
             {
                 if (!Regex.Match(parts[i], @"([\+\-]?\*((0\.0)|(0))\*?)|([\+\-\*]((0\.0)|(0))x)").Success)

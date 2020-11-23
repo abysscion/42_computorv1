@@ -7,6 +7,7 @@ namespace computorv1
         public bool RndFlagSet { get; private set; }
         public bool SFlagSet { get; private set; }
         public bool RFlagSet { get; private set; }
+        public bool FFlagSet { get; private set; }
         public int RndEquationsCount { get; private set; }
 
         public void Parse(string[] opts)
@@ -32,6 +33,11 @@ namespace computorv1
                             if (SFlagSet)
                                 throw new Exception("-s flag is already set.");
                             SFlagSet = true;
+                            break;
+                        case "-f":
+                            if (FFlagSet)
+                                throw new Exception("-f flag is already set.");
+                            FFlagSet = true;
                             break;
                         case "-r":
                             if (RFlagSet)

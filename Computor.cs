@@ -28,31 +28,55 @@ namespace computorv1
 
         private static void ProceedArguments(string[] args)
         {
+            EquationSolver solver;
+            string equation;
+            int degree;
             var optsParser = new OptionsParser();
             var opts = new string[args.Length - 1];
-            string equ;
-            int degree;
-            
+
             Array.Copy(args, opts, args.Length - 1);
             optsParser.Parse(opts);
             if (optsParser.RndFlagSet)
                 GenerateRandomEquations(optsParser.RndEquationsCount);
-            Console.WriteLine($"Reduced form: {equ = EquationParser.Parse(args[^1], optsParser.RFlagSet)}");
-            Console.WriteLine($"Polynomial degree: {degree = EquationParser.GetPolynomialDegree(equ)}");
-            if (degree < 0 || degree > 2)
-                throw new Exception("sorry, but polynomial degree should be in range of [0, 2].");
-            if (degree == 0)
+            equation = EquationParser.Parse(args[^1]);
+            solver = new EquationSolver(equation, optsParser.FFlagSet);
+            solver.Solve();
+
+            Console.WriteLine($"Reduced form: {equation}");
+            Console.WriteLine($"Polynomial degree: {solver.Degree}");
+            if (solver.Degree == 0)
             {
-                if (equ.Length != 3)
-                    throw new Exception("seems like there's no actual EQUATION!");
-                if (equ[0] != equ[2])
-                    throw new Exception("seems like there's no actual EQUATION!");
-                Console.WriteLine("The solutions are all numbers.");
+                Console.WriteLine(solver.SolutionType == EquationSolver.SolutionTypes.Any
+                    ? "Any number is solution."
+                    : "There is no solution.");
+            }
+            else if (solver.Degree == 1)
+            {
+                Console.WriteLine("The only possible solution is 0.");
             }
             else
             {
-                var solver = new EquationSolver();
-                solver.Solve(equ);
+                if (solver.Discriminant > 0)
+                    Console.WriteLine("Discriminant is strictly positive. There are two solutions:");
+                else if (solver.Discriminant == 0)
+                    Console.WriteLine("Discriminant is 0. There is one solution:");
+                else
+                    Console.WriteLine("Discriminant is strictly negative. There are two complex solutions:");
+                foreach (var root in solver.Roots)
+                    Console.WriteLine(root);
+            }
+
+            if (optsParser.SFlagSet)
+            {
+                Console.WriteLine("\nREDUCTION STEPS:");
+                EquationParser.PrintReductionSteps();
+            }
+            
+            if (optsParser.SFlagSet)
+            {
+                Console.WriteLine("\nSOLVING STEPS:");
+                foreach (var step in solver.SolvingSteps)
+                    Console.WriteLine(step);
             }
         }
 
@@ -61,6 +85,7 @@ namespace computorv1
             Console.WriteLine("./computor.sh [options] \"equation\"\n\t(to solve equation)");
             Console.WriteLine("options:\n" +
                               "\t-rnd:<N>\t - generate N random equations, where's N - integer number in range (1, 100) inclusive.\n" +
+                              "\t-f\t - show roots as fractions\n" +
                               "\t-s\t - print equation solving steps\n" +
                               "\t-r\t - print equation reducing steps");
         }
