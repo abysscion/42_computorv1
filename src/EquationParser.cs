@@ -14,7 +14,7 @@ namespace computorv1
         
         public static string Parse(string equation)
         {
-            if (!equation.Contains('x'))
+            if (!equation.Contains('x', StringComparison.CurrentCultureIgnoreCase))
                 throw new Exception("forgot to put x, huh?");
             var trimmedEqu = Regex.Replace(equation, @"\s+", "").ToLower();
 

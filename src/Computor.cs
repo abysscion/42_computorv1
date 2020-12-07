@@ -21,8 +21,6 @@ namespace computorv1
             catch (Exception e)
             {
                 Console.WriteLine("[Error] " + (e.Message.Length != 0 ? e.Message : e.ToString()));
-                // if (e.StackTrace !=  null)
-                //     Console.WriteLine(e.StackTrace);
             }
         }
 
@@ -35,13 +33,20 @@ namespace computorv1
 
             Array.Copy(args, opts, args.Length - 1);
             optsParser.Parse(opts);
-            if (optsParser.RndFlagSet)
-                GenerateRandomEquations(optsParser.RndEquationsCount);
             equation = EquationParser.Parse(args[^1]);
             solver = new EquationSolver(equation, optsParser.FFlagSet);
-            Console.WriteLine($"Reduced form: {equation}");
             solver.Solve();
+            
+            PrintInfo(solver, optsParser, equation);
+            if (optsParser.RndFlagSet)
+                GenerateRandomEquations(optsParser.RndEquationsCount);
+        }
+
+        private static void PrintInfo(EquationSolver solver, OptionsParser optsParser, string equation)
+        {
+            Console.WriteLine($"Reduced form: {equation}");
             Console.WriteLine($"Polynomial degree: {solver.Degree}");
+            
             if (solver.Degree == 0)
             {
                 Console.WriteLine(solver.SolutionType == EquationSolver.SolutionTypes.Any
@@ -57,7 +62,7 @@ namespace computorv1
                 else if (solver.Discriminant == 0)
                     Console.WriteLine("Discriminant is 0. There is one solution:");
                 else
-                    Console.WriteLine("Discriminant is strictly negative. No real solutions, but there are two complex solutions:");
+                    Console.WriteLine("Discriminant is strictly negative. There are two complex solutions:");
                 foreach (var root in solver.Roots)
                     Console.WriteLine(root);
             }
