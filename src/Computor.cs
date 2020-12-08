@@ -83,7 +83,7 @@ namespace computorv1
 
         private static void PrintUsage()
         { 
-            Console.WriteLine("./computor.sh [options] \"equation\"\n\t(to solve equation)");
+            Console.WriteLine("./computor [options] \"equation\"\n\t(to solve equation)");
             Console.WriteLine("options:\n" +
                               "\t-rnd:<N>\t- generate N random equations, where's N - integer number in range (1, 100) inclusive.\n" + 
 							  "\t\t\t  generated equations will be stored at file \"rndEquations.txt\"\n" +
